@@ -27,7 +27,17 @@ export default class AuthController {
     });
   }
 
-  static async restrictTo() {}
+  static restrictTo(...roles) {
+    return function (req, res, next) {
+      if (!roles.includes(req.user.role)) {
+        return next(
+          new AppError("You do not have permission to perform this action", 401),
+        );
+      }
+
+      next();
+    };
+  }
 
   static async protect(req, res, next) {}
 }
