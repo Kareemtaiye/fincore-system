@@ -18,8 +18,6 @@ export default class TransactionService {
 
     const referenceId = `DEP_${formattedDate}_${crypto.randomBytes(6).toString("hex").toUpperCase()}`;
 
-    // console.log(referenceId);
-
     let transaction;
     try {
       const systemWallet = await WalletService.getSystemWallet(client);
