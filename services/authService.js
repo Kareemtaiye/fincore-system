@@ -29,7 +29,7 @@ export default class AuthService {
       const refreshToken = TokenService.generateRefreshToken();
 
       //Auto create a wallet for new user
-      const wallet = await WalletService.createWallet({ userId: user.id }, client);
+      const wallet = await WalletService.createWallet(user.id, client);
 
       //Auto create profile
       const profile = await ProfileService.createUserProfile(

@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 
 import authRouter from "./routes/authRoutes.js";
+import transactionRouter from "./routes/transactionRoutes.js";
 import globalErrHandler from "./middlewares/globalErrHandler.js";
 import unhandledRoutes from "./middlewares/unhandledRoutes.js";
 
@@ -15,6 +16,7 @@ app.use(cors());
 app.use(morgan("dev"));
 
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/transaction", transactionRouter);
 
 app.use(unhandledRoutes);
 app.use(globalErrHandler);
