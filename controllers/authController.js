@@ -15,7 +15,6 @@ export default class AuthController {
     const { email, password, role = "USER", firstName, lastName } = req.body || {};
 
     //Check for incoming reqbody
-
     if (!req.body || Object.keys(req.body).length === 0) {
       return next(new AppError("Request body is required", 400));
     }

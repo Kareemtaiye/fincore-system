@@ -27,6 +27,6 @@ export default class SessionRepository {
     `;
 
     const rows = await db.query(query, [userId]);
-    console.log(rows);
+    return rows.rowCount;
   }
 }

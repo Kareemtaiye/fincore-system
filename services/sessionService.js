@@ -12,6 +12,6 @@ export default class SessionService {
   }
 
   static async revokeAllUserSessions(userId, client) {
-    await SessionRepository.revokeAllSessions(userId, client);
+    return await SessionRepository.revokeAllSessions(userId, client);
   }
 }
