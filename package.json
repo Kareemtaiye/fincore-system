@@ -1,0 +1,33 @@
+{
+  "name": "fincore-system",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "db:reset": "psql -U kareem_dev -d fincore_system -f db/schema.sql",
+    "start": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kareemtaiye/fincore-system.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Kareemtaiye/fincore-system/issues"
+  },
+  "homepage": "https://github.com/Kareemtaiye/fincore-system#readme",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
+    "nodemon": "^3.1.14",
+    "pg": "^8.19.0"
+  }
+}
