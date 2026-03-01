@@ -107,6 +107,7 @@ export default class AuthController {
 
     const { accessToken, isActive } = data;
 
+    //Deactivated acc.
     if (!isActive) {
       return next(new AppError("Account has been deactivated.", 401));
     }
