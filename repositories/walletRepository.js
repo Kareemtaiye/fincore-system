@@ -29,4 +29,16 @@ export default class WalletRepository {
     const { rows } = await db.query(query, [userId]);
     return rows[0] || null;
   }
+
+  static async updateWalletBalance({ walletId, amount }, db = pool) {
+    const query = `
+    UPDATE wallets 
+    SET balance = balance + $1 
+    WHERE id = $2
+    RETURNING balance
+    `;
+
+    const { rows } = await db.query(query, [amount, walletId]);
+    return rows[0];
+  }
 }

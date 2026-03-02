@@ -52,6 +52,15 @@ export default class TransactionService {
         client,
       );
 
+      //Update the user wallet balance
+      const updatedWallet = await WalletService.updateWalletBalance(
+        {
+          walletId: userWallet.id,
+          amount,
+        },
+        client,
+      );
+
       //Mark transaction as Completed
       const completedTransaction = await TransactionService.updateTransactionStatus(
         {
@@ -63,8 +72,6 @@ export default class TransactionService {
 
       await client.query("COMMIT");
 
-      console.log(await LedgerEntryService.getWalletBalance(userWallet.id));
-
       //Return infooo
       return {
         reference: completedTransaction.reference,
@@ -73,6 +80,7 @@ export default class TransactionService {
         from_wallet_id: systemWallet.id,
         to_wallet_id: userWallet.user_id,
         status: "COMPLETED",
+        balance: updatedWallet.balance,
         created_at: completedTransaction.created_at,
       };
     } catch (err) {
