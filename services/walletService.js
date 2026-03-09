@@ -14,6 +14,10 @@ export default class WalletService {
     return await WalletRepository.getSystemWallet(client);
   }
 
+  static async creditUserWallet({ walletId, amount }, client) {
+    return await WalletRepository.creditWallet({ walletId, amount }, client);
+  }
+
   // static async getWalletBalance(walletId, client) {
   //   const walletEntries = await LedgerEntryService.getWalletEntries(walletId, client);
 
