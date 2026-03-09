@@ -5,6 +5,7 @@ import cors from "cors";
 
 import authRouter from "./routes/authRoutes.js";
 import transactionRouter from "./routes/transactionRoutes.js";
+import webhookRouter from "./routes/webhookRoutes.js";
 import globalErrHandler from "./middlewares/globalErrHandler.js";
 import unhandledRoutes from "./middlewares/unhandledRoutes.js";
 
@@ -13,10 +14,13 @@ const app = express();
 app.use(cookieParser());
 app.use(express.json());
 app.use(cors());
-app.use(morgan("dev"));
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev"));
+}
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/transaction", transactionRouter);
+app.use("/api/v1/webhook", webhookRouter);
 
 app.use(unhandledRoutes);
 app.use(globalErrHandler);

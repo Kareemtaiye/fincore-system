@@ -15,6 +15,7 @@ export default class WalletRepository {
   static async getSystemWallet(db = pool) {
     const query = ` 
     SELECT * FROM wallets WHERE is_system = TRUE
+    FOR UPDATE
     `;
 
     const { rows } = await db.query(query);
@@ -24,21 +25,23 @@ export default class WalletRepository {
   static async getUserWallet(userId, db = pool) {
     const query = ` 
     SELECT * FROM wallets WHERE user_id = $1
+    FOR UPDATE
     `;
 
     const { rows } = await db.query(query, [userId]);
     return rows[0] || null;
   }
 
-  static async updateWalletBalance({ walletId, amount }, db = pool) {
+  static async creditWallet({ walletId, amount }, db = pool) {
     const query = `
     UPDATE wallets 
-    SET balance = balance + $1 
+    SET balance = balance + $1 ,
+        updated_at = now()
     WHERE id = $2
     RETURNING balance
     `;
 
     const { rows } = await db.query(query, [amount, walletId]);
-    return rows[0];
+    return rows[0] || null;
   }
 }

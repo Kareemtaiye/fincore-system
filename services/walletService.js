@@ -14,8 +14,8 @@ export default class WalletService {
     return await WalletRepository.getSystemWallet(client);
   }
 
-  static async updateWalletBalance({ walletId, amount }, client) {
-    return await WalletRepository.updateWalletBalance({ walletId, amount }, client);
+  static async creditUserWallet({ walletId, amount }, client) {
+    return await WalletRepository.creditWallet({ walletId, amount }, client);
   }
 
   // static async getWalletBalance(walletId, client) {

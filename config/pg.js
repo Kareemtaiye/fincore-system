@@ -25,7 +25,7 @@ if (NODE_ENV === "production") {
 
 (async () => {
   try {
-    const client = await pool.connect();
+    await pool.connect();
     console.log("pg database connected successfully");
   } catch (err) {
     console.log(`pg database connection failed`, err);
