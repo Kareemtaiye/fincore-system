@@ -22,15 +22,22 @@ export default class WebhookHandler {
 
     const { data, event } = req.body || {};
 
+    console.log("WEBHOOK DATA and EVENT: ", data, event);
+
+    // Log every webhook event regardless of outcome
+    await WebhookService.createWebhookEvent({ eventType: event, payload: data });
+
     //Fetch the transaction
-    const transaction = await TransactionService.getTransactionByRef(data.reference);
+    const transaction = await TransactionService.getTransactionByRef(
+      data.merchant_reference,
+    );
     if (!transaction) {
       return next(new AppError("Transaction cannot be found", 404));
     }
 
     //Preventing dupl trans.
     if (transaction.status === "COMPLETED") {
-      res.status(200).send("Already processed");
+      return res.status(200).send("Already processed");
     }
 
     //If it fails
@@ -41,18 +48,17 @@ export default class WebhookHandler {
         status: "FAILED",
       });
 
-      res.status(200).send("Failed recorded");
+      return res.status(200).send("Failed recorded");
     }
 
     //If it was successful
     if (event === "payment.success") {
+      const client = await pool.connect();
       try {
-        const client = pool.connect();
-
         await client.query("BEGIN");
 
         const systemWallet = await WalletService.getSystemWallet(client);
-        const userWallet = await WalletService.getUserWallet(req.user.id, client);
+        const userWallet = await WalletService.getUserWallet(transaction.user_id, client);
 
         //Debit the system
         await LedgerEntryService.createEntry(
@@ -95,21 +101,10 @@ export default class WebhookHandler {
         );
 
         // Store event in db
-        await WebhookService.createWebhookEvent({ eventId: event.id, payload: data });
 
         await client.query("COMMIT");
 
         res.status(200).send("ok");
-
-        return {
-          reference: completedTransaction.reference,
-          status: "COMPLETED",
-          transaction_type: completedTransaction.type,
-          amount: data.amount,
-          to_wallet_id: userWallet.id,
-          balance: updatedWallet.balance,
-          created_at: completedTransaction.created_at,
-        };
       } catch (err) {
         await client.query("ROLLBACK");
         throw err;

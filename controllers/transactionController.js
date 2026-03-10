@@ -1,7 +1,6 @@
 import crypto from "crypto";
 import IdempotencyService from "../services/idempotencyService.js";
 import TransactionService from "../services/transactionService.js";
-import WalletService from "../services/walletService.js";
 import AppError from "../utilities/AppError.js";
 
 //Will implement webhook later after creating another server for fake payment provider. ---5 days later: did it.
@@ -33,12 +32,11 @@ export default class TransactionController {
       userId: req.user.id,
     });
 
+    const requestHash = crypto
+      .createHash("sha256")
+      .update(JSON.stringify(req.body))
+      .digest("hex");
     if (record) {
-      const requestHash = crypto
-        .createHash("sha256")
-        .update(JSON.stringify(req.body))
-        .digest("hex");
-
       //Prevent misuse with different payload
       if (record.request_hash !== requestHash) {
         return next(new AppError("Idempotency-Key resued with different Payload", 409));
@@ -54,18 +52,12 @@ export default class TransactionController {
     //   return next(new AppError("Cannot find user wallet. Please check again.", 400));
     // }
 
-    const transactionData = await TransactionService.createDepositTransaction({
+    const responseBody = await TransactionService.createDepositTransaction({
       amount,
       userId: req.user.id,
+      idempotencyKey,
+      requestHash,
     });
-
-    const responseBody = {
-      status: "success",
-      data: transactionData,
-    };
-
-    //Store response
-    // IdempotencyService.createIdempotencyEntry({});
 
     res.status(201).json(responseBody);
   }

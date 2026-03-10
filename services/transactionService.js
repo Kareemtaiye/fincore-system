@@ -1,18 +1,22 @@
-import crypto from "crypto";
 import TransactionRepository from "../repositories/transactionRepository.js";
 import pool from "../config/pg.js";
 import WalletService from "./walletService.js";
 import LedgerEntryService from "./legderEntryService.js";
 import generateRef from "../utilities/generateRef.js";
+import IdempotencyService from "./idempotencyService.js";
 
 export default class TransactionService {
-  static async createDepositTransaction({ amount, userId }) {
+  static async createDepositTransaction({ amount, userId, idempotencyKey, requestHash }) {
     const client = await pool.connect();
+    console.log(requestHash, "  sdfgh   ");
 
     const referenceId = generateRef("DEP");
 
     let transaction;
     try {
+      await client.query("BEGIN");
+
+      //Create a trabsaction entry(def is pending)
       transaction = await TransactionRepository.createTransaction({
         type: "DEPOSIT",
         reference: referenceId,
@@ -20,64 +24,60 @@ export default class TransactionService {
         amount,
       });
 
-      await client.query("BEGIN");
-
-      const systemWallet = await WalletService.getSystemWallet(client);
-      const userWallet = await WalletService.getUserWallet(userId, client);
-
-      //Debit the system
-      await LedgerEntryService.createEntry(
-        {
-          walletId: systemWallet.id,
-          transactionId: transaction.id,
-          type: "DEBIT",
-          amount,
+      //Call the provider
+      const response = await fetch("http://localhost:8081/api/v1/payment/initialize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+          authorization:
+            "Bearer fp_test_a18c1826ffd6873a4950a47018cbd089b397fc76bdf02226",
         },
-        client,
-      );
+        body: JSON.stringify({
+          amount: amount,
+          currency: "NGN",
+          merchant_ref: referenceId,
+          metadata: { product: "Data about the product. later on" },
+        }),
+      });
 
-      //Credit the user
-      await LedgerEntryService.createEntry(
-        {
-          walletId: userWallet.id,
-          transactionId: transaction.id,
-          type: "CREDIT",
-          amount,
-        },
-        client,
-      );
+      if (!response.ok) {
+        const errorBody = await response.json();
+        // Throwing here sends control to the catch block
+        throw new Error(errorBody?.message || `Provider error: ${response.status}`);
+      }
 
-      //Update the user wallet balance
-      const updatedWallet = await WalletService.creditUserWallet(
-        {
-          walletId: userWallet.id,
-          amount,
-        },
-        client,
-      );
+      const data = await response.json();
 
-      //Mark transaction as Completed
-      const completedTransaction = await TransactionService.updateTransactionStatus(
-        {
-          transactionId: transaction.id,
-          status: "COMPLETED",
-        },
-        client,
-      );
+      console.log("DATA from provider: ", data);
 
       await client.query("COMMIT");
 
-      //Return infooo
-      return {
-        reference: completedTransaction.reference,
-        transaction_type: completedTransaction.type,
-        amount,
-        from_wallet_id: systemWallet.id,
-        to_wallet_id: userWallet.user_id,
-        status: "COMPLETED",
-        balance: updatedWallet.balance,
-        created_at: completedTransaction.created_at,
+      const responseBody = {
+        status: "success",
+        data: {
+          amount: data.data.amount,
+          currency: data.data.currency,
+          reference: referenceId,
+          status: data.data.status,
+          payment_url: data.data.authorization_url,
+        },
       };
+
+      // Store response
+      await IdempotencyService.createIdempotencyEntry(
+        {
+          idempotencyKey,
+          userId,
+          requestHash,
+          responseStatus: 201,
+          responseBody,
+        },
+        client,
+      );
+
+      //Return payment url
+      return responseBody;
     } catch (err) {
       await client.query("ROLLBACK");
 
@@ -90,6 +90,7 @@ export default class TransactionService {
           status: "FAILED",
         });
       }
+
       throw err;
     } finally {
       await client.release();
