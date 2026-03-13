@@ -3,34 +3,27 @@ import TransactionRepository from "../repositories/transactionRepository.js";
 import pool from "../config/pg.js";
 import WalletService from "./walletService.js";
 import LedgerEntryService from "./legderEntryService.js";
+import generateRef from "../utilities/generateRef.js";
 
 export default class TransactionService {
-  static async createDepositTransaction({ to, amount }) {
+  static async createDepositTransaction({ amount, userId }) {
     const client = await pool.connect();
 
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    const millisec = d.getMilliseconds();
-
-    const formattedDate = `${year}${month}${day}${millisec}`;
-
-    const referenceId = `DEP_${formattedDate}_${crypto.randomBytes(6).toString("hex").toUpperCase()}`;
-
-    // console.log(referenceId);
+    const referenceId = generateRef("DEP");
 
     let transaction;
     try {
-      const systemWallet = await WalletService.getSystemWallet(client);
-      const userWallet = await WalletService.getUserWallet(to, client);
-
       transaction = await TransactionRepository.createTransaction({
         type: "DEPOSIT",
         reference: referenceId,
+        userId,
+        amount,
       });
 
       await client.query("BEGIN");
+
+      const systemWallet = await WalletService.getSystemWallet(client);
+      const userWallet = await WalletService.getUserWallet(userId, client);
 
       //Debit the system
       await LedgerEntryService.createEntry(
@@ -54,6 +47,15 @@ export default class TransactionService {
         client,
       );
 
+      //Update the user wallet balance
+      const updatedWallet = await WalletService.creditUserWallet(
+        {
+          walletId: userWallet.id,
+          amount,
+        },
+        client,
+      );
+
       //Mark transaction as Completed
       const completedTransaction = await TransactionService.updateTransactionStatus(
         {
@@ -65,8 +67,6 @@ export default class TransactionService {
 
       await client.query("COMMIT");
 
-      console.log(await LedgerEntryService.getWalletBalance(userWallet.id));
-
       //Return infooo
       return {
         reference: completedTransaction.reference,
@@ -75,17 +75,21 @@ export default class TransactionService {
         from_wallet_id: systemWallet.id,
         to_wallet_id: userWallet.user_id,
         status: "COMPLETED",
+        balance: updatedWallet.balance,
         created_at: completedTransaction.created_at,
       };
     } catch (err) {
       await client.query("ROLLBACK");
 
       //Mark transaction as failed
-      await TransactionService.updateTransactionStatus({
-        transactionId: transaction.id,
-        status: "FAILED",
-      });
-
+      if (transaction?.id) {
+        // No client passed here — uses pool, separate connection
+        // Optional chaining guards against transaction never being assigned(if the error happens before createTransaction resolves, transaction is undefined and this current catch block may throw another error that may mask the original error, thereby causeing confusion🤪)
+        await TransactionService.updateTransactionStatus({
+          transactionId: transaction.id,
+          status: "FAILED",
+        });
+      }
       throw err;
     } finally {
       await client.release();
@@ -101,5 +105,16 @@ export default class TransactionService {
       { transactionId, status },
       client,
     );
+  }
+
+  static async markDepositAsComplete({ reference, transactionId }, client) {
+    return await TransactionRepository.markDepositAsComplete(
+      { reference, transactionId },
+      client,
+    );
+  }
+
+  static async getTransactionByRef(reference, client) {
+    return TransactionRepository.getTransactionByRef(reference, client);
   }
 }
