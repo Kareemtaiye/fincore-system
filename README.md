@@ -1,29 +1,37 @@
 # fincore-system
 
-#complex wallet system
-develop branch
+Fincore is a backend financial infrastructure service designed to handle wallet balances, transaction processing, and accounting integrity for digital platforms.
 
-Readme
-You are building:
+The system models real-world fintech architecture by separating transactions, ledger entries, and wallet balances, ensuring accurate financial state and auditability.
 
-Ledger system (Fincore)
+It integrates with external payment providers via webhooks to process deposits and updates internal ledger entries using double-entry accounting principles.
 
-Payment gateway simulator (Fake Provider)
+Key capabilities include:
 
-Event-driven webhook architecture
+Wallet management for application users
 
-Idempotent transaction processor
+Transaction lifecycle tracking (pending, success, failed)
 
-Multi-wallet accounting engine
+Double-entry ledger system for financial correctness
 
-That’s not small.
+Deposit processing via external payment providers
 
-That’s fintech core infrastructure.
+Idempotent transaction processing to prevent duplicates
 
---
-no longer building a wallet App, building a small -scale payment processing core.
+Webhook-based event handling for asynchronous payment confirmations
 
---handling concurrency and race conditions using:
-DB-Level-Lockinf (first line of defense)
-Pessimistic Locking (for complex transactions)
-Optimistic locking (for high-read, low write scenarios)
+This project demonstrates how financial systems maintain consistency, traceability, and accounting correctness when handling user funds.
+
+Key Concepts Implemented
+
+Double-entry accounting
+
+Payment lifecycle management
+
+Idempotent API design
+
+Webhook event processing
+
+Wallet balance reconciliation
+
+Database transactions for financial integrity
