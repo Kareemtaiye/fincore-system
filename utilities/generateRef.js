@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 export default function generateRef(prefix) {
   const d = new Date();
   const year = d.getFullYear();

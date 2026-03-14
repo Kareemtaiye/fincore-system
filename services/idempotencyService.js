@@ -2,11 +2,11 @@ import IdempotencyRepository from "../repositories/idempotencyRepository.js";
 
 export default class IdempotencyService {
   static async createIdempotencyEntry(
-    { idempotencyKey, userId, endpoint, responseStatus, requestBody, requestHash },
+    { idempotencyKey, userId, responseStatus, responseBody, requestHash },
     client,
   ) {
     return await IdempotencyRepository.createIdempotency(
-      { idempotencyKey, userId, responseStatus, requestBody, requestHash },
+      { idempotencyKey, userId, responseStatus, responseBody, requestHash },
       client,
     );
   }

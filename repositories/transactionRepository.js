@@ -26,17 +26,17 @@ export default class TransactionRepository {
     return rows[0];
   }
 
-  static async markDepositAsComplete({ reference, transactionId }, db = pool) {
+  static async markDepositAsComplete({ providerReference, transactionId }, db = pool) {
     const query = `
     UPDATE transactions 
-    SET reference = $1,
+    SET provider_reference = $1,
         status = 'COMPLETED',
         updated_at = now()
     WHERE id = $2
     RETURNING *
     `;
 
-    const { rows } = await db.query(query, [reference, transactionId]);
+    const { rows } = await db.query(query, [providerReference, transactionId]);
     // return rows.rowCount;
     return rows[0];
   }

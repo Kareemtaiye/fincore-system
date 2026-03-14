@@ -3,12 +3,12 @@ import pool from "../config/pg.js";
 export default class IdempotencyRepository {
   //Don't forget regualr cleanup or regular table drop for sharding
   static async createIdempotency(
-    { idempotencyKey, userId, endpoint, responseStatus, requestBody, requestHash },
+    { idempotencyKey, userId, responseStatus, responseBody, requestHash },
     db = pool,
   ) {
     const query = `
     INSERT INTO idempotency_keys 
-    (idempotency_key, user_id, response_status, response_body, response_hash)
+    (idempotency_key, user_id, response_status, response_body, request_hash)
     VALUES ($1, $2, $3, $4, $5) 
     ON CONFLICT (idempotency_key, user_id) DO NOTHING
     RETURNING *; 
@@ -18,7 +18,7 @@ export default class IdempotencyRepository {
       idempotencyKey,
       userId,
       responseStatus,
-      requestBody,
+      responseBody,
       requestHash,
     ]);
 
