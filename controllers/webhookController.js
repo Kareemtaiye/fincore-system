@@ -20,12 +20,12 @@ export default class WebhookHandler {
       return next(new AppError("Invalid signature", 401));
     }
 
-    const { data, event } = req.body || {};
+    const { data, event, id } = req.body || {};
 
-    console.log("WEBHOOK DATA and EVENT: ", data, event);
+    console.log("WEBHOOK DATA and EVENT: ", data, event, id);
 
     // Log every webhook event regardless of outcome
-    await WebhookService.createWebhookEvent({ eventType: event, payload: data });
+    await WebhookService.createWebhookEvent({ eventId: id, payload: data });
 
     //Fetch the transaction
     const transaction = await TransactionService.getTransactionByRef(
@@ -33,6 +33,12 @@ export default class WebhookHandler {
     );
     if (!transaction) {
       return next(new AppError("Transaction cannot be found", 404));
+    }
+
+    //If payment was just initialized
+    if (event === "payment.initialized") {
+      //Just tell the provider we got the webhook and will process it. No need to update anything in our db yet since we already have a pending transaction record.
+      return res.status(200).send("Got it.");
     }
 
     //Preventing dupl trans.
@@ -92,9 +98,9 @@ export default class WebhookHandler {
         );
 
         //Mark transaction as Completed
-        const completedTransaction = await TransactionService.markDepositAsComplete(
+        await TransactionService.markDepositAsComplete(
           {
-            reference: data.reference,
+            providerReference: data.reference,
             transactionId: transaction.id,
           },
           client,

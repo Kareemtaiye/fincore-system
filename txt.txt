@@ -1,0 +1,29 @@
+# fincore-system
+
+#complex wallet system
+develop branch
+
+Readme
+You are building:
+
+Ledger system (Fincore)
+
+Payment gateway simulator (Fake Provider)
+
+Event-driven webhook architecture
+
+Idempotent transaction processor
+
+Multi-wallet accounting engine
+
+That’s not small.
+
+That’s fintech core infrastructure.
+
+--
+no longer building a wallet App, building a small -scale payment processing core.
+
+--handling concurrency and race conditions using:
+DB-Level-Lockinf (first line of defense)
+Pessimistic Locking (for complex transactions)
+Optimistic locking (for high-read, low write scenarios)

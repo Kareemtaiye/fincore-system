@@ -108,9 +108,9 @@ export default class TransactionService {
     );
   }
 
-  static async markDepositAsComplete({ reference, transactionId }, client) {
+  static async markDepositAsComplete({ providerReference, transactionId }, client) {
     return await TransactionRepository.markDepositAsComplete(
-      { reference, transactionId },
+      { providerReference, transactionId },
       client,
     );
   }
