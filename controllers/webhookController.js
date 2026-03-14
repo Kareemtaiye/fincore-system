@@ -107,7 +107,6 @@ export default class WebhookHandler {
         );
 
         // Store event in db
-
         await client.query("COMMIT");
 
         res.status(200).send("ok");
