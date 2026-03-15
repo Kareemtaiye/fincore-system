@@ -12,7 +12,7 @@ export default class IdempotencyRepository {
     VALUES ($1, $2, $3, $4, $5) 
     ON CONFLICT (idempotency_key, user_id) DO NOTHING
     RETURNING *; 
-    `; // Asking "Am i first?". if yes, create, if no, fetch the already there
+    `; // Asking "Am i first?". if yes, create, if no, fetch the one already there
 
     const { rows } = await db.query(query, [
       idempotencyKey,

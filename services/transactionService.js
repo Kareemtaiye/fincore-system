@@ -12,17 +12,16 @@ export default class TransactionService {
 
     const referenceId = generateRef("DEP");
 
-    let transaction;
+    //Create a trabsaction entry(pending)
+    const transaction = await TransactionRepository.createTransaction({
+      type: "DEPOSIT",
+      reference: referenceId,
+      userId,
+      amount,
+    });
+
     try {
       await client.query("BEGIN");
-
-      //Create a trabsaction entry(def is pending)
-      transaction = await TransactionRepository.createTransaction({
-        type: "DEPOSIT",
-        reference: referenceId,
-        userId,
-        amount,
-      });
 
       //Call the provider
       const response = await fetch("http://localhost:8081/api/v1/payment/initialize", {
@@ -97,9 +96,133 @@ export default class TransactionService {
     }
   }
 
-  static async createTransferTransaction() {
-    //SELECT ... FOR UPDATE.
+  static async createTransferTransaction({
+    amount,
+    from,
+    to,
+    idempotencyKey,
+    requestHash,
+  }) {
+    const client = await pool.connect();
+    const referenceId = generateRef("TRF");
+
+    //Create a transaction entry(pending)
+    const transaction = await TransactionRepository.createTransaction({
+      type: "TRANSFER",
+      reference: referenceId,
+      userId: from,
+      amount,
+    });
+
+    try {
+      await client.query("BEGIN");
+
+      //Get the from user wallet
+      const userWallet = await WalletService.getUserWallet(from, client);
+      if (!userWallet) {
+        throw new Error("Sender wallet not found");
+      }
+
+      //Get both wallets and lock them for update
+      const result = await WalletService.getToAndFromWallets(
+        { toWalletId: to, fromWalletId: userWallet.id },
+        client,
+      );
+
+      //Could trhow error or return null, depending on how you want to handle it. I prefer returning null and handling it gracefully in the service layer, rather than throwing an error from the repository layer, which is more of a data access layer and should ideally not contain business logic like error handling for missing wallets.
+      if (!result) {
+        throw new Error("One or both wallets not found");
+      }
+
+      //Sender amount check
+      if (result.fromWallet.balance < amount) {
+        throw new Error("Insufficient balance");
+      }
+
+      //Debit the sender
+      await WalletService.debitUserWallet(
+        { walletId: result.fromWallet.id, amount },
+        client,
+      );
+
+      //Credit the recipient
+      await WalletService.creditUserWallet(
+        { walletId: result.toWallet.id, amount },
+        client,
+      );
+
+      //Create ledger entry for sender and recipient
+      await LedgerEntryService.createEntry(
+        {
+          walletId: result.fromWallet.id,
+          transactionId: transaction.id,
+          type: "DEBIT",
+          amount,
+        },
+        client,
+      );
+
+      await LedgerEntryService.createEntry(
+        {
+          walletId: result.toWallet.id,
+          transactionId: transaction.id,
+          type: "CREDIT",
+          amount,
+        },
+        client,
+      );
+
+      //Mark transaction as completed
+      await TransactionRepository.updateTransactionStatus(
+        { transactionId: transaction.id, status: "COMPLETED" },
+        client,
+      );
+
+      // Store response
+
+      const responseBody = {
+        status: "success",
+        data: {
+          amount,
+          reference: referenceId,
+          status: "COMPLETED",
+          from: result.fromWallet.user_id,
+          to: result.toWallet.user_id,
+        },
+      };
+
+      await IdempotencyService.createIdempotencyEntry(
+        {
+          idempotencyKey,
+          userId: from,
+          requestHash,
+          responseStatus: 201,
+          responseBody,
+        },
+        client,
+      );
+
+      await client.query("COMMIT");
+
+      return responseBody;
+    } catch (err) {
+      await client.query("ROLLBACK");
+
+      //Mark transaction as failed
+      if (transaction?.id) {
+        await TransactionService.updateTransactionStatus({
+          transactionId: transaction.id,
+          status: "FAILED",
+        });
+      }
+
+      throw err;
+    } finally {
+      await client.release();
+    }
   }
+
+  static async createWithdrawalTransaction() {}
 
   static async updateTransactionStatus({ transactionId, status }, client) {
     return await TransactionRepository.updateTransactionStatus(
