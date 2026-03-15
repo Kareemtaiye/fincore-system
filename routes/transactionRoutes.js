@@ -8,8 +8,11 @@ router.use(AuthController.protect);
 
 router.post(
   "/deposit",
-  // AuthController.restrictTo("ADMIN"),
+  AuthController.restrictTo("ADMIN"),
   handleAsyncErr(TransactionController.deposit),
 );
+
+router.post("/transfer", handleAsyncErr(TransactionController.transfer));
+// router.post("/withdraw", handleAsyncErr(TransactionController.withdraw));
 
 export default router;

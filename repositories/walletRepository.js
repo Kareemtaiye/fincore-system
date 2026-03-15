@@ -44,4 +44,48 @@ export default class WalletRepository {
     const { rows } = await db.query(query, [amount, walletId]);
     return rows[0] || null;
   }
+
+  static async debitWallet({ walletId, amount }, db = pool) {
+    const query = `
+    UPDATE wallets 
+    SET balance = balance - $1 ,
+        updated_at = now()
+    WHERE id = $2
+    RETURNING balance
+    `;
+
+    const { rows } = await db.query(query, [amount, walletId]);
+    return rows[0] || null;
+  }
+
+  static async getWalletBalance(walletId, db = pool) {
+    const query = `
+    SELECT balance FROM wallets WHERE id = $1
+    `;
+
+    const { rows } = await db.query(query, [walletId]);
+    return rows[0]?.balance || 0;
+  }
+
+  static async getToAndFromWallets({ fromWalletId, toWalletId }, db = pool) {
+    const query = `
+    SELECT * FROM wallets 
+    WHERE id = ANY($1)
+    ORDER BY id -- to prevent deadlocks
+    FOR UPDATE
+    `;
+
+    const { rows } = await db.query(query, [[fromWalletId, toWalletId]]);
+
+    return rows;
+  }
+
+  // static async getWalletById(walletId, db = pool) {
+  //   const query = `
+  //   SELECT * FROM wallets WHERE id = $1
+  //   `;
+
+  //   const { rows } = await db.query(query, [walletId]);
+  //   return rows[0] || null;
+  // }
 }
