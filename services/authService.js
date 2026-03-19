@@ -38,7 +38,10 @@ export default class AuthService {
       );
 
       //User session
-      await SessionService.createUserSession({ userId: user.id, refreshToken }, client);
+      await SessionService.createUserSession(
+        { userId: user.id, refreshToken, role: user.role },
+        client,
+      );
 
       await client.query("COMMIT");
       const userObj = { ...user, ...profile, wallet };
@@ -71,7 +74,10 @@ export default class AuthService {
 
       const { password, isactive, ...userObj } = user;
 
-      await SessionService.createUserSession({ userId: user.id, refreshToken }, client);
+      await SessionService.createUserSession(
+        { userId: user.id, refreshToken, role: user.role },
+        client,
+      );
 
       await client.query("COMMIT");
 
