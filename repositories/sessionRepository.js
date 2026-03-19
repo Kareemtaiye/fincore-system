@@ -1,14 +1,14 @@
 import pool from "../config/pg.js";
 
 export default class SessionRepository {
-  static async createSession({ userId, refreshToken, expiresAt }, db = pool) {
+  static async createSession({ userId, refreshToken, role }, db = pool) {
     const query = `
-        INSERT INTO sessions (user_id, refresh_token, expires_at)
+        INSERT INTO sessions (user_id, refresh_token, role)
         VALUES ($1, $2, $3)
         RETURNING *
         `;
 
-    await db.query(query, [userId, refreshToken, expiresAt]);
+    await db.query(query, [userId, refreshToken, role]);
   }
 
   static async getSessionByToken(refreshToken, db = pool) {

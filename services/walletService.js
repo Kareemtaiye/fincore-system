@@ -3,7 +3,7 @@ import LedgerEntryService from "./legderEntryService.js";
 
 export default class WalletService {
   static async createWallet(userId, client) {
-    return await WalletRepository.createWallet({ userId }, client);
+    return await WalletRepository.createWallet(userId, client);
   }
 
   static async getUserWallet(userId, client) {

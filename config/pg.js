@@ -2,7 +2,16 @@ import { config } from "dotenv";
 config();
 import { Pool } from "pg";
 
-const { NODE_ENV, PG_HOST, PG_PORT, PG_DB_LOCAL, PG_USER, PG_PASS } = process.env;
+// const { NODE_ENV, PG_HOST, PG_PORT, PG_DB_LOCAL, PG_USER, PG_PASS } = process.env;
+
+const {
+  NODE_ENV,
+  DOCKER_PG_HOST,
+  DOCKER_PG_PORT,
+  DOCKER_PG_DB,
+  DOCKER_PG_USER,
+  DOCKER_PG_PASS,
+} = process.env;
 
 let pool;
 
@@ -13,11 +22,11 @@ if (NODE_ENV === "production") {
   });
 } else {
   pool = new Pool({
-    user: PG_USER,
-    password: PG_PASS,
-    port: PG_PORT,
-    host: PG_HOST,
-    database: PG_DB_LOCAL,
+    user: DOCKER_PG_USER,
+    password: DOCKER_PG_PASS,
+    port: DOCKER_PG_PORT,
+    host: DOCKER_PG_HOST,
+    database: DOCKER_PG_DB,
     idleTimeoutMillis: 20000,
     connectionTimeoutMillis: 5000,
   });

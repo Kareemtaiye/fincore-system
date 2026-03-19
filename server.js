@@ -5,10 +5,10 @@ config();
 import app from "./app.js";
 import pool from "./config/pg.js";
 
-const { PORT, HOST, NODE_ENV } = process.env;
+const { PORT, DOCKER_PORT, NODE_ENV } = process.env;
 
 const server = app.listen(PORT, () => {
-  console.log(`Fincore serving running port: ${PORT} IN ${NODE_ENV}`);
+  console.log(`Fincore serving running port: ${DOCKER_PORT} IN ${NODE_ENV}`);
 });
 
 // process.on("SIGINT", () => {
