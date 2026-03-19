@@ -20,17 +20,30 @@ export default class WebhookHandler {
       return next(new AppError("Invalid signature", 401));
     }
 
-    const { data, event } = req.body || {};
+    const { data, event, id } = req.body || {};
+
+    console.log("WEBHOOK DATA and EVENT: ", data, event, id);
+
+    // Log every webhook event regardless of outcome
+    await WebhookService.createWebhookEvent({ eventId: id, payload: data });
 
     //Fetch the transaction
-    const transaction = await TransactionService.getTransactionByRef(data.reference);
+    const transaction = await TransactionService.getTransactionByRef(
+      data.merchant_reference,
+    );
     if (!transaction) {
       return next(new AppError("Transaction cannot be found", 404));
     }
 
+    //If payment was just initialized
+    if (event === "payment.initialized") {
+      //Just tell the provider we got the webhook and will process it. No need to update anything in our db yet since we already have a pending transaction record.
+      return res.status(200).send("Got it.");
+    }
+
     //Preventing dupl trans.
     if (transaction.status === "COMPLETED") {
-      res.status(200).send("Already processed");
+      return res.status(200).send("Already processed");
     }
 
     //If it fails
@@ -41,18 +54,17 @@ export default class WebhookHandler {
         status: "FAILED",
       });
 
-      res.status(200).send("Failed recorded");
+      return res.status(200).send("Failed recorded");
     }
 
     //If it was successful
     if (event === "payment.success") {
+      const client = await pool.connect();
       try {
-        const client = pool.connect();
-
         await client.query("BEGIN");
 
         const systemWallet = await WalletService.getSystemWallet(client);
-        const userWallet = await WalletService.getUserWallet(req.user.id, client);
+        const userWallet = await WalletService.getUserWallet(transaction.user_id, client);
 
         //Debit the system
         await LedgerEntryService.createEntry(
@@ -86,30 +98,19 @@ export default class WebhookHandler {
         );
 
         //Mark transaction as Completed
-        const completedTransaction = await TransactionService.markDepositAsComplete(
+        await TransactionService.markDepositAsComplete(
           {
-            reference: data.reference,
+            providerReference: data.reference,
             transactionId: transaction.id,
           },
           client,
         );
 
         // Store event in db
-        await WebhookService.createWebhookEvent({ eventId: event.id, payload: data });
 
         await client.query("COMMIT");
 
         res.status(200).send("ok");
-
-        return {
-          reference: completedTransaction.reference,
-          status: "COMPLETED",
-          transaction_type: completedTransaction.type,
-          amount: data.amount,
-          to_wallet_id: userWallet.id,
-          balance: updatedWallet.balance,
-          created_at: completedTransaction.created_at,
-        };
       } catch (err) {
         await client.query("ROLLBACK");
         throw err;

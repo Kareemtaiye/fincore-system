@@ -3,7 +3,7 @@ import LedgerEntryService from "./legderEntryService.js";
 
 export default class WalletService {
   static async createWallet(userId, client) {
-    return await WalletRepository.createWallet({ userId }, client);
+    return await WalletRepository.createWallet(userId, client);
   }
 
   static async getUserWallet(userId, client) {
@@ -18,11 +18,29 @@ export default class WalletService {
     return await WalletRepository.creditWallet({ walletId, amount }, client);
   }
 
-  // static async getWalletBalance(walletId, client) {
-  //   const walletEntries = await LedgerEntryService.getWalletEntries(walletId, client);
+  static async getWalletBalance(walletId, client) {
+    return await WalletRepository.getWalletBalance(walletId, client);
+  }
 
-  //   if (walletEntries.length === 0) {
-  //     return 0;
-  //   }
-  // }
+  static async getToAndFromWallets({ fromWalletId, toWalletId }, client) {
+    const result = await WalletRepository.getToAndFromWallets(
+      { fromWalletId, toWalletId },
+      client,
+    );
+
+    if (result.length !== 2) {
+      return null; // One or both wallets not found
+    }
+
+    const fromWallet = result.find(wallet => wallet.id === fromWalletId);
+    const toWallet = result.find(wallet => wallet.id === toWalletId);
+
+    console.log({ fromWallet, toWallet });
+
+    return { fromWallet, toWallet };
+  }
+
+  static async debitUserWallet({ walletId, amount }, client) {
+    return await WalletRepository.debitWallet({ walletId, amount }, client);
+  }
 }

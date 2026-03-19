@@ -12,4 +12,7 @@ router.post(
   handleAsyncErr(TransactionController.deposit),
 );
 
+router.post("/transfer", handleAsyncErr(TransactionController.transfer));
+// router.post("/withdraw", handleAsyncErr(TransactionController.withdraw));
+
 export default router;

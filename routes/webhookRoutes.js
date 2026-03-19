@@ -1,5 +1,5 @@
 import { Router } from "express";
-import WebhookHandler from "../controllers/webHookController.js";
+import WebhookHandler from "../controllers/webhookController.js";
 import handleAsyncErr from "../utilities/handleAsyncErr.js";
 
 const router = Router();
